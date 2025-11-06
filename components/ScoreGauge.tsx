@@ -3,15 +3,31 @@ import React, { useState, useEffect } from 'react';
 
 interface ScoreGaugeProps {
   score: number;
+  label: string;
 }
 
-const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score }) => {
+const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score, label }) => {
   const [displayScore, setDisplayScore] = useState(0);
 
   useEffect(() => {
-    const animation = requestAnimationFrame(() => setDisplayScore(score));
-    return () => cancelAnimationFrame(animation);
+    // Animate score changes
+    let startTimestamp: number | null = null;
+    const startScore = displayScore;
+    const duration = 800;
+
+    const step = (timestamp: number) => {
+      if (!startTimestamp) startTimestamp = timestamp;
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+      setDisplayScore(progress * (score - startScore) + startScore);
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    };
+    
+    requestAnimationFrame(step);
+
   }, [score]);
+
 
   const radius = 80;
   const stroke = 12;
@@ -32,7 +48,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score }) => {
   };
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="relative flex items-center justify-center w-[160px] h-[160px]">
       <svg
         height={radius * 2}
         width={radius * 2}
@@ -48,7 +64,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score }) => {
           cy={radius}
         />
         <circle
-          className={`${getStrokeColor(score)} transition-all duration-1000 ease-out`}
+          className={`${getStrokeColor(score)} transition-stroke duration-300`}
           stroke="currentColor"
           strokeWidth={stroke}
           strokeLinecap="round"
@@ -59,6 +75,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score }) => {
           style={{
             strokeDasharray: `${circumference} ${circumference}`,
             strokeDashoffset,
+            transition: 'stroke-dashoffset 0.8s ease-out',
           }}
         />
       </svg>
@@ -66,7 +83,7 @@ const ScoreGauge: React.FC<ScoreGaugeProps> = ({ score }) => {
         <span className={`text-5xl font-bold ${getScoreColor(score)}`}>
           {Math.round(displayScore)}
         </span>
-        <span className="text-sm text-slate-400">Quality Score</span>
+        <span className="text-sm text-slate-400">{label}</span>
       </div>
     </div>
   );

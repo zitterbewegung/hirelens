@@ -22,3 +22,11 @@ export interface ScoredAnalysis extends ExtractedData {
     redFlags: number;
   };
 }
+
+export interface AtsAnalysis {
+  matchScore: number;
+  matchingKeywords: string[];
+  missingKeywords: string[];
+  summary: string;
+  suggestions: string;
+}

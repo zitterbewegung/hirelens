@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ExtractedData } from '../types';
+import { ExtractedData, AtsAnalysis } from '../types';
 
 const API_KEY = process.env.API_KEY;
 
@@ -32,6 +32,18 @@ const responseSchema = {
   required: ['workLocationType', 'costOfLivingAnalysis', 'overallSummary']
 };
 
+const atsResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        matchScore: { type: Type.NUMBER, description: "A score from 0-100 indicating how well the resume matches the job description." },
+        matchingKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of keywords and skills from the job description found in the resume." },
+        missingKeywords: { type: Type.ARRAY, items: { type: Type.STRING }, description: "A list of important keywords and skills from the job description NOT found in the resume." },
+        summary: { type: Type.STRING, description: "A brief summary of the candidate's fit for the role." },
+        suggestions: { type: Type.STRING, description: "Actionable suggestions for the candidate to improve their resume for this specific job posting." },
+    },
+    required: ['matchScore', 'matchingKeywords', 'missingKeywords', 'summary', 'suggestions']
+};
+
 export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData> => {
   const prompt = `
     Act as an expert HR analyst and recruiter. Analyze the following job posting text.
@@ -42,12 +54,7 @@ export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData>
     ${jobText}
     ---
     
-    Your analysis should focus on:
-    1.  **Salary:** Extract the numerical min and max values. If a single number is given, use it for both.
-    2.  **Location:** Determine if it's remote, hybrid, or onsite. Also, extract the city, state, and country.
-    3.  **Posting Age:** Determine how many days ago the job was posted. Look for phrases like "Posted X days ago" or a specific date. If a date is provided, calculate the days from today's date, which is ${new Date().toISOString().split('T')[0]}.
-    4.  **Cost of Living:** If salary and location are present, provide a log-normalized score from 0-100 assessing if the salary is good for that area's cost of living. A higher score is better. If salary or location is missing, this should be null.
-    5.  **Summary:** Provide a concise overall summary.
+    Today's date is ${new Date().toISOString().split('T')[0]}.
   `;
 
   try {
@@ -63,7 +70,6 @@ export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData>
     const jsonText = response.text.trim();
     const parsedData = JSON.parse(jsonText);
     
-    // Gemini sometimes returns null instead of undefined for optional fields
     if (parsedData.salaryMin === null) delete parsedData.salaryMin;
     if (parsedData.salaryMax === null) delete parsedData.salaryMax;
     if (parsedData.jobCity === null) delete parsedData.jobCity;
@@ -79,3 +85,38 @@ export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData>
     throw new Error("Failed to get analysis from Gemini API. Please check the console for details.");
   }
 };
+
+export const analyzeResumeAgainstJob = async (resumeText: string, jobText: string): Promise<AtsAnalysis> => {
+    const prompt = `
+      Act as an advanced Applicant Tracking System (ATS). Your task is to analyze the provided resume against the given job description.
+      Provide a detailed analysis in the specified JSON format. The analysis should be objective and based on keyword and skill matching.
+  
+      Job Description:
+      ---
+      ${jobText}
+      ---
+  
+      Resume:
+      ---
+      ${resumeText}
+      ---
+    `;
+  
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: atsResponseSchema,
+        },
+      });
+  
+      const jsonText = response.text.trim();
+      return JSON.parse(jsonText) as AtsAnalysis;
+  
+    } catch (error) {
+      console.error("Error analyzing resume:", error);
+      throw new Error("Failed to get ATS analysis from Gemini API. Please check the console for details.");
+    }
+  };
