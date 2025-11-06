@@ -19,13 +19,7 @@ const responseSchema = {
     jobCity: { type: Type.STRING, description: "The city of the job. Null if not present." },
     jobState: { type: Type.STRING, description: "The state or province of the job. Null if not present." },
     jobCountry: { type: Type.STRING, description: "The country of the job. Null if not present." },
-    discriminatoryLanguage: {
-      type: Type.OBJECT,
-      properties: {
-        ageRelated: { type: Type.BOOLEAN, description: "True if any age-related discriminatory language is found (e.g., 'young', 'recent graduate', 'energetic team of new grads')." },
-        textFound: { type: Type.STRING, description: "The specific discriminatory phrase found. Null if none." }
-      }
-    },
+    postingAgeInDays: { type: Type.NUMBER, description: "How many days ago the job was posted. Extract this from text like 'Posted 5 days ago' or a date. Calculate the difference from today if a date is given. Null if not found." },
     costOfLivingAnalysis: {
       type: Type.OBJECT,
       properties: {
@@ -35,7 +29,7 @@ const responseSchema = {
     },
     overallSummary: { type: Type.STRING, description: "A one-paragraph summary of the job posting's quality from an HR perspective." }
   },
-  required: ['workLocationType', 'discriminatoryLanguage', 'costOfLivingAnalysis', 'overallSummary']
+  required: ['workLocationType', 'costOfLivingAnalysis', 'overallSummary']
 };
 
 export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData> => {
@@ -51,7 +45,7 @@ export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData>
     Your analysis should focus on:
     1.  **Salary:** Extract the numerical min and max values. If a single number is given, use it for both.
     2.  **Location:** Determine if it's remote, hybrid, or onsite. Also, extract the city, state, and country.
-    3.  **Discriminatory Language:** Specifically look for age-related red flags.
+    3.  **Posting Age:** Determine how many days ago the job was posted. Look for phrases like "Posted X days ago" or a specific date. If a date is provided, calculate the days from today's date, which is ${new Date().toISOString().split('T')[0]}.
     4.  **Cost of Living:** If salary and location are present, briefly assess if the salary is high, medium, or low for that area.
     5.  **Summary:** Provide a concise overall summary.
   `;
@@ -75,7 +69,7 @@ export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData>
     if (parsedData.jobCity === null) delete parsedData.jobCity;
     if (parsedData.jobState === null) delete parsedData.jobState;
     if (parsedData.jobCountry === null) delete parsedData.jobCountry;
-    if (parsedData.discriminatoryLanguage.textFound === null) delete parsedData.discriminatoryLanguage.textFound;
+    if (parsedData.postingAgeInDays === null) delete parsedData.postingAgeInDays;
 
 
     return parsedData as ExtractedData;

@@ -6,10 +6,7 @@ export interface ExtractedData {
   jobCity?: string;
   jobState?: string;
   jobCountry?: string;
-  discriminatoryLanguage: {
-    ageRelated: boolean;
-    textFound?: string;
-  };
+  postingAgeInDays?: number;
   costOfLivingAnalysis: {
     salaryVsCostOfLiving: 'high' | 'medium' | 'low' | 'unknown';
     reasoning: string;

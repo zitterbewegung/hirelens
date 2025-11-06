@@ -4,9 +4,9 @@ import { ExtractedData, ScoredAnalysis } from '../types';
 const MAX_SALARY_SCORE = 35;
 const MAX_LOCATION_SCORE = 20;
 const MAX_COST_OF_LIVING_SCORE = 30;
-const MAX_RED_FLAGS_SCORE = 15; // Represents potential positive points if no flags.
+const MAX_POSTING_AGE_SCORE = 15;
 
-const TOTAL_MAX_SCORE = MAX_SALARY_SCORE + MAX_LOCATION_SCORE + MAX_COST_OF_LIVING_SCORE + MAX_RED_FLAGS_SCORE;
+const TOTAL_MAX_SCORE = MAX_SALARY_SCORE + MAX_LOCATION_SCORE + MAX_COST_OF_LIVING_SCORE + MAX_POSTING_AGE_SCORE;
 
 export const calculateScores = (data: ExtractedData): ScoredAnalysis => {
   let salaryScore = 0;
@@ -53,13 +53,30 @@ export const calculateScores = (data: ExtractedData): ScoredAnalysis => {
       costOfLivingScore = 0;
   }
   
-  const redFlagsPenalty = data.discriminatoryLanguage.ageRelated ? 50 : 0;
-  const redFlagsScore = MAX_RED_FLAGS_SCORE - (redFlagsPenalty > 0 ? MAX_RED_FLAGS_SCORE : 0);
+  let postingAgeCategoryScore = 0; // Score from 0-100 for this category
+  if (typeof data.postingAgeInDays === 'number') {
+    const age = data.postingAgeInDays;
+    if (age < 7) {
+        postingAgeCategoryScore = 100;
+    } else if (age < 14) {
+        postingAgeCategoryScore = 80;
+    } else if (age < 30) {
+        postingAgeCategoryScore = 50;
+    } else if (age < 60) {
+        postingAgeCategoryScore = 20;
+    } else {
+        postingAgeCategoryScore = 0;
+    }
+  } else {
+    // If not found, score is 0. The UI will show a question mark and explain.
+    postingAgeCategoryScore = 0; 
+  }
 
-  const totalPositiveScore = salaryScore + locationScore + costOfLivingScore + MAX_RED_FLAGS_SCORE;
-  const finalScore = Math.max(0, totalPositiveScore - redFlagsPenalty);
+  const postingAgePoints = (postingAgeCategoryScore / 100) * MAX_POSTING_AGE_SCORE;
 
-  const overallScore = Math.round((finalScore / TOTAL_MAX_SCORE) * 100);
+  const totalPoints = salaryScore + locationScore + costOfLivingScore + postingAgePoints;
+
+  const overallScore = Math.round((totalPoints / TOTAL_MAX_SCORE) * 100);
 
   return {
     ...data,
@@ -68,7 +85,7 @@ export const calculateScores = (data: ExtractedData): ScoredAnalysis => {
       salary: Math.round((salaryScore / MAX_SALARY_SCORE) * 100),
       location: Math.round((locationScore / MAX_LOCATION_SCORE) * 100),
       costOfLiving: Math.round((costOfLivingScore / MAX_COST_OF_LIVING_SCORE) * 100),
-      redFlags: redFlagsPenalty > 0 ? 0 : 100, // 0 if flags found, 100 otherwise
+      redFlags: postingAgeCategoryScore, // Keep name for App.tsx, value is 0-100
     },
   };
 };

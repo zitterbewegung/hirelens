@@ -1,24 +1,50 @@
-
 import React, { useState, useCallback } from 'react';
 import { analyzeJobPosting } from './services/geminiService';
 import { calculateScores } from './utils/scorer';
 import { ScoredAnalysis } from './types';
 import ScoreGauge from './components/ScoreGauge';
-import { DollarSignIcon, LocationMarkerIcon, BuildingIcon, FlagIcon } from './components/icons';
+import { DollarSignIcon, LocationMarkerIcon, BuildingIcon, ClockIcon, QuestionMarkCircleIcon } from './components/icons';
 
-const defaultJobPosting = `Senior Frontend Engineer (React)
-    
-Acme Innovations Inc. - San Francisco, CA (Hybrid)
-Salary: $140,000 - $175,000 per year
+const jobPostingExamples = [
+  {
+    name: 'Excellent Example',
+    content: `Senior Backend Engineer (Go)
+CloudSphere Inc. - Remote (USA)
+Salary: $180,000 - $200,000 per year
+Posted: 1 day ago
 
-We are looking for a motivated and experienced Senior Frontend Engineer to join our dynamic team. The ideal candidate will have 5+ years of experience with React, TypeScript, and modern frontend technologies. You'll be working on our flagship product, helping us build a world-class user experience.
+CloudSphere is seeking a highly skilled Senior Backend Engineer with expertise in Go to join our distributed team. You will be responsible for designing, developing, and maintaining our core cloud infrastructure. We offer a comprehensive benefits package, unlimited PTO, and a strong culture of innovation and collaboration. This is a fully remote position open to candidates across the United States.`
+  },
+  {
+    name: 'Average Example',
+    content: `Marketing Associate
+MarketPro LLC - Chicago, IL (Hybrid)
+Salary: $65,000 - $85,000
+Posted: 2 weeks ago
 
-This role is hybrid, requiring 3 days a week in our downtown San Francisco office. We offer competitive benefits, a great work-life balance, and opportunities for growth.
+MarketPro LLC is looking for a creative Marketing Associate to support our campaign development and execution. The ideal candidate will have 2-3 years of marketing experience. This is a hybrid role, with 2 days per week in our Chicago office. Responsibilities include social media management, content creation, and event coordination.`
+  },
+  {
+    name: 'Poor Example',
+    content: `Junior Graphic Designer
+Creative Solutions - New York, NY (Onsite)
+Salary: Competitive
 
-We are a fast-paced, energetic team of recent graduates and seasoned professionals looking to change the world. Apply today!`;
+We are hiring a Junior Graphic Designer to join our team in NYC. Must be proficient in Adobe Creative Suite. This is a full-time, onsite position. The successful candidate will work on a variety of design projects.
+Posted 2 months ago`
+  },
+  {
+    name: 'Missing Date',
+    content: `Data Analyst
+Data Insights Co. - Denver, CO (Hybrid)
+Salary: $90,000 - $110,000 per year
+
+We are looking for a Data Analyst to join our growing team. You will be responsible for analyzing large datasets to provide actionable insights. This role requires strong SQL and Python skills. The position is based in Denver, CO, with a hybrid work schedule. We offer great benefits and opportunities for professional growth.`
+  }
+];
 
 const App: React.FC = () => {
-  const [jobText, setJobText] = useState<string>(defaultJobPosting);
+  const [jobText, setJobText] = useState<string>(jobPostingExamples[0].content);
   const [analysis, setAnalysis] = useState<ScoredAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +68,12 @@ const App: React.FC = () => {
       setIsLoading(false);
     }
   }, [jobText]);
+
+  const loadExample = (content: string) => {
+    setJobText(content);
+    setAnalysis(null);
+    setError(null);
+  };
 
   const InfoCard: React.FC<{
     icon: React.ReactNode;
@@ -91,6 +123,26 @@ const App: React.FC = () => {
       );
     }
 
+    const renderPostingAgeInfo = () => {
+        if (typeof analysis.postingAgeInDays === 'number') {
+            const age = analysis.postingAgeInDays;
+            let textClass = 'text-green-400';
+            if (age >= 30) textClass = 'text-amber-400';
+            if (age >= 60) textClass = 'text-red-400';
+
+            return <p className={textClass}>Posted <span className="font-bold">{age}</span> day{age === 1 ? '' : 's'} ago.</p>;
+        }
+        return (
+            <div className="flex items-center gap-2 text-slate-400">
+                <QuestionMarkCircleIcon className="w-8 h-8 text-amber-400 shrink-0" />
+                <div>
+                    <p className="font-bold text-slate-300">Posting Date Not Found</p>
+                    <p>The age of the posting could not be determined. Stale jobs can be a red flag.</p>
+                </div>
+            </div>
+        );
+    };
+
     return (
       <div className="space-y-6">
         <div className="bg-slate-800/50 rounded-lg p-6 flex flex-col md:flex-row items-center gap-6 backdrop-blur-sm border border-slate-700">
@@ -119,16 +171,9 @@ const App: React.FC = () => {
              <p>Salary vs CoL: <span className="font-semibold capitalize text-slate-300">{analysis.costOfLivingAnalysis.salaryVsCostOfLiving}</span></p>
              <p>{analysis.costOfLivingAnalysis.reasoning}</p>
           </InfoCard>
-
-          <InfoCard icon={<FlagIcon className="w-6 h-6 text-red-400" />} title="Red Flags" score={analysis.scores.redFlags} scoreColorClass={getScoreColorClass(analysis.scores.redFlags)}>
-            {analysis.discriminatoryLanguage.ageRelated ? (
-              <>
-                <p className="font-bold text-red-400">Age-related language found!</p>
-                <p className="italic bg-red-900/50 p-2 rounded">"{analysis.discriminatoryLanguage.textFound}"</p>
-              </>
-            ) : (
-              <p className="text-green-400">No obvious age-related red flags found.</p>
-            )}
+          
+          <InfoCard icon={<ClockIcon className="w-6 h-6 text-cyan-400" />} title="Posting Age" score={analysis.scores.redFlags} scoreColorClass={getScoreColorClass(analysis.scores.redFlags)}>
+             {renderPostingAgeInfo()}
           </InfoCard>
         </div>
       </div>
@@ -143,21 +188,36 @@ const App: React.FC = () => {
             Job Posting Quality Analyzer
           </h1>
           <p className="mt-2 text-slate-400 max-w-2xl mx-auto">
-            Paste a job description below and let AI score its quality based on key factors like salary, location, and potential red flags.
+            Paste a job description below and let AI score its quality based on key factors like salary, location, and posting age.
           </p>
         </header>
 
         <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="flex flex-col">
-            <label htmlFor="job-posting" className="mb-2 font-semibold text-slate-300">
-              Job Posting Text
-            </label>
+            <div className="mb-4">
+              <label className="mb-2 font-semibold text-slate-300 block">
+                Load an Example
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {jobPostingExamples.map((example) => (
+                  <button
+                    key={example.name}
+                    onClick={() => loadExample(example.content)}
+                    className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-md transition-colors"
+                  >
+                    {example.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <textarea
               id="job-posting"
               value={jobText}
               onChange={(e) => setJobText(e.target.value)}
               placeholder="Paste job description here..."
               className="flex-grow w-full p-4 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow min-h-[500px] text-slate-300"
+              aria-label="Job Posting Text Input"
             />
             <button
               onClick={handleAnalyzeClick}
