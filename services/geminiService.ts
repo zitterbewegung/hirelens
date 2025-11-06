@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { ExtractedData } from '../types';
 
@@ -23,9 +22,10 @@ const responseSchema = {
     costOfLivingAnalysis: {
       type: Type.OBJECT,
       properties: {
-        salaryVsCostOfLiving: { type: Type.STRING, enum: ['high', 'medium', 'low', 'unknown'], description: "How the salary compares to the cost of living in the specified location. 'unknown' if salary or location is missing." },
+        costOfLivingScore: { type: Type.NUMBER, description: "A log-normalized score from 0 to 100 representing how the salary compares to the cost of living. 0 is very poor, 100 is excellent. Null if salary or location is missing." },
         reasoning: { type: Type.STRING, description: "A brief explanation for the cost of living rating." }
-      }
+      },
+      required: ['reasoning']
     },
     overallSummary: { type: Type.STRING, description: "A one-paragraph summary of the job posting's quality from an HR perspective." }
   },
@@ -46,7 +46,7 @@ export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData>
     1.  **Salary:** Extract the numerical min and max values. If a single number is given, use it for both.
     2.  **Location:** Determine if it's remote, hybrid, or onsite. Also, extract the city, state, and country.
     3.  **Posting Age:** Determine how many days ago the job was posted. Look for phrases like "Posted X days ago" or a specific date. If a date is provided, calculate the days from today's date, which is ${new Date().toISOString().split('T')[0]}.
-    4.  **Cost of Living:** If salary and location are present, briefly assess if the salary is high, medium, or low for that area.
+    4.  **Cost of Living:** If salary and location are present, provide a log-normalized score from 0-100 assessing if the salary is good for that area's cost of living. A higher score is better. If salary or location is missing, this should be null.
     5.  **Summary:** Provide a concise overall summary.
   `;
 
@@ -70,7 +70,7 @@ export const analyzeJobPosting = async (jobText: string): Promise<ExtractedData>
     if (parsedData.jobState === null) delete parsedData.jobState;
     if (parsedData.jobCountry === null) delete parsedData.jobCountry;
     if (parsedData.postingAgeInDays === null) delete parsedData.postingAgeInDays;
-
+    if (parsedData.costOfLivingAnalysis.costOfLivingScore === null) delete parsedData.costOfLivingAnalysis.costOfLivingScore;
 
     return parsedData as ExtractedData;
 

@@ -1,4 +1,3 @@
-
 export interface ExtractedData {
   salaryMin?: number;
   salaryMax?: number;
@@ -8,7 +7,7 @@ export interface ExtractedData {
   jobCountry?: string;
   postingAgeInDays?: number;
   costOfLivingAnalysis: {
-    salaryVsCostOfLiving: 'high' | 'medium' | 'low' | 'unknown';
+    costOfLivingScore?: number;
     reasoning: string;
   };
   overallSummary: string;

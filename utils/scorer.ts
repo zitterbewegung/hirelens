@@ -1,4 +1,3 @@
-
 import { ExtractedData, ScoredAnalysis } from '../types';
 
 const MAX_SALARY_SCORE = 35;
@@ -38,20 +37,8 @@ export const calculateScores = (data: ExtractedData): ScoredAnalysis => {
       locationScore = 0;
   }
 
-  let costOfLivingScore = 0;
-  switch (data.costOfLivingAnalysis.salaryVsCostOfLiving) {
-    case 'high':
-      costOfLivingScore = 30;
-      break;
-    case 'medium':
-      costOfLivingScore = 15;
-      break;
-    case 'low':
-      costOfLivingScore = 5;
-      break;
-    default:
-      costOfLivingScore = 0;
-  }
+  const costOfLivingScoreForCard = data.costOfLivingAnalysis.costOfLivingScore ?? 0;
+  const costOfLivingPoints = (costOfLivingScoreForCard / 100) * MAX_COST_OF_LIVING_SCORE;
   
   let postingAgeCategoryScore = 0; // Score from 0-100 for this category
   if (typeof data.postingAgeInDays === 'number') {
@@ -74,7 +61,7 @@ export const calculateScores = (data: ExtractedData): ScoredAnalysis => {
 
   const postingAgePoints = (postingAgeCategoryScore / 100) * MAX_POSTING_AGE_SCORE;
 
-  const totalPoints = salaryScore + locationScore + costOfLivingScore + postingAgePoints;
+  const totalPoints = salaryScore + locationScore + costOfLivingPoints + postingAgePoints;
 
   const overallScore = Math.round((totalPoints / TOTAL_MAX_SCORE) * 100);
 
@@ -84,7 +71,7 @@ export const calculateScores = (data: ExtractedData): ScoredAnalysis => {
       overall: overallScore,
       salary: Math.round((salaryScore / MAX_SALARY_SCORE) * 100),
       location: Math.round((locationScore / MAX_LOCATION_SCORE) * 100),
-      costOfLiving: Math.round((costOfLivingScore / MAX_COST_OF_LIVING_SCORE) * 100),
+      costOfLiving: Math.round(costOfLivingScoreForCard),
       redFlags: postingAgeCategoryScore, // Keep name for App.tsx, value is 0-100
     },
   };

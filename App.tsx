@@ -32,14 +32,6 @@ Salary: Competitive
 
 We are hiring a Junior Graphic Designer to join our team in NYC. Must be proficient in Adobe Creative Suite. This is a full-time, onsite position. The successful candidate will work on a variety of design projects.
 Posted 2 months ago`
-  },
-  {
-    name: 'Missing Date',
-    content: `Data Analyst
-Data Insights Co. - Denver, CO (Hybrid)
-Salary: $90,000 - $110,000 per year
-
-We are looking for a Data Analyst to join our growing team. You will be responsible for analyzing large datasets to provide actionable insights. This role requires strong SQL and Python skills. The position is based in Denver, CO, with a hybrid work schedule. We offer great benefits and opportunities for professional growth.`
   }
 ];
 
@@ -168,7 +160,9 @@ const App: React.FC = () => {
           </InfoCard>
           
           <InfoCard icon={<BuildingIcon className="w-6 h-6 text-indigo-400" />} title="Cost of Living" score={analysis.scores.costOfLiving} scoreColorClass={getScoreColorClass(analysis.scores.costOfLiving)}>
-             <p>Salary vs CoL: <span className="font-semibold capitalize text-slate-300">{analysis.costOfLivingAnalysis.salaryVsCostOfLiving}</span></p>
+             {typeof analysis.costOfLivingAnalysis.costOfLivingScore === 'number' ? (
+                <p>Salary vs CoL Score: <span className="font-semibold text-slate-300">{analysis.costOfLivingAnalysis.costOfLivingScore} / 100</span></p>
+             ) : null}
              <p>{analysis.costOfLivingAnalysis.reasoning}</p>
           </InfoCard>
           
@@ -185,7 +179,7 @@ const App: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-8">
           <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">
-            Job Posting Quality Analyzer
+            Hirelens
           </h1>
           <p className="mt-2 text-slate-400 max-w-2xl mx-auto">
             Paste a job description below and let AI score its quality based on key factors like salary, location, and posting age.
