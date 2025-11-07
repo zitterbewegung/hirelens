@@ -10,16 +10,21 @@ const TOTAL_MAX_SCORE = MAX_SALARY_SCORE + MAX_LOCATION_SCORE + MAX_COST_OF_LIVI
 export const calculateScores = (data: ExtractedData): ScoredAnalysis => {
   let salaryScore = 0;
   if (data.salaryMin && data.salaryMax) {
-    // Score for providing salary
-    salaryScore += 25;
+    // Base score for providing a salary range
+    salaryScore += 15;
     
-    // Score for narrow spread
+    // Additional score for a narrow salary spread (up to 20 points)
     const spreadRatio = (data.salaryMax - data.salaryMin) / data.salaryMax;
-    if (spreadRatio < 0.15) {
+    if (spreadRatio < 0.10) { // Excellent spread
+      salaryScore += 20;
+    } else if (spreadRatio < 0.20) { // Good spread
+      salaryScore += 15;
+    } else if (spreadRatio < 0.30) { // Average spread
       salaryScore += 10;
-    } else if (spreadRatio < 0.3) {
+    } else if (spreadRatio < 0.40) { // Wide spread
       salaryScore += 5;
     }
+    // Spreads >= 40% get no additional points
   }
 
   let locationScore = 0;

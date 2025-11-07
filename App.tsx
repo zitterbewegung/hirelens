@@ -1,10 +1,11 @@
+
 import React, { useState, useCallback, ChangeEvent } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { analyzeJobPosting, analyzeResumeAgainstJob } from './services/geminiService';
 import { calculateScores } from './utils/scorer';
 import { ScoredAnalysis, AtsAnalysis } from './types';
 import ScoreGauge from './components/ScoreGauge';
-import { DollarSignIcon, LocationMarkerIcon, BuildingIcon, ClockIcon, QuestionMarkCircleIcon, DocumentTextIcon } from './components/icons';
+import { DollarSignIcon, LocationMarkerIcon, BuildingIcon, ClockIcon, QuestionMarkCircleIcon, DocumentTextIcon, HirelensLogoIcon } from './components/icons';
 
 // Set worker source for pdf.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
@@ -192,6 +193,10 @@ const App: React.FC = () => {
         </div>
       );
     }
+    
+    const salarySpread = analysis.salaryMin && analysis.salaryMax && analysis.salaryMax > 0
+      ? ((analysis.salaryMax - analysis.salaryMin) / analysis.salaryMax) * 100
+      : null;
 
     return (
       <div className="space-y-6 animate-fade-in">
@@ -205,7 +210,13 @@ const App: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InfoCard icon={<DollarSignIcon className="w-6 h-6 text-green-400" />} title="Salary" score={analysis.scores.salary} scoreColorClass={getScoreColorClass(analysis.scores.salary)}>
-                {analysis.salaryMin && analysis.salaryMax ? ( <p>Range: ${analysis.salaryMin.toLocaleString()} - ${analysis.salaryMax.toLocaleString()}</p> ) : ( <p>No salary range provided.</p> )}
+                {analysis.salaryMin && analysis.salaryMax ? ( 
+                    <>
+                        <p>Range: ${analysis.salaryMin.toLocaleString()} - ${analysis.salaryMax.toLocaleString()}</p>
+                        {salarySpread !== null && <p>Spread: <span className="font-semibold text-slate-300">{salarySpread.toFixed(1)}%</span></p>}
+                        <p className="text-xs pt-1">Score is based on providing a salary and the narrowness of the range.</p>
+                    </>
+                ) : ( <p>No salary range provided.</p> )}
             </InfoCard>
             <InfoCard icon={<LocationMarkerIcon className="w-6 h-6 text-blue-400" />} title="Work Location" score={analysis.scores.location} scoreColorClass={getScoreColorClass(analysis.scores.location)}>
                 <p>Type: <span className="font-semibold capitalize text-slate-300">{analysis.workLocationType}</span></p>
@@ -318,9 +329,12 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-slate-900 text-slate-200 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">
-            Hirelens
-          </h1>
+          <div className="flex items-center justify-center gap-3 sm:gap-4">
+            <HirelensLogoIcon className="w-10 h-10 sm:w-12 sm:h-12" />
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-600">
+              Hirelens
+            </h1>
+          </div>
           <p className="mt-2 text-slate-400 max-w-2xl mx-auto">
             Analyze job descriptions and check your resume's match with our AI-powered tools.
           </p>
@@ -341,6 +355,7 @@ const App: React.FC = () => {
           <div className="w-full">
             <div className="border-b border-slate-700 mb-6">
                 <TabButton label="Job Quality Analysis" isActive={activeTab === 'job'} onClick={() => setActiveTab('job')} />
+                {/* Fix: Corrected typo from `active-tab` to `activeTab` */}
                 <TabButton label="Resume ATS Check" isActive={activeTab === 'ats'} onClick={() => setActiveTab('ats')} />
             </div>
             {activeTab === 'job' ? renderAnalysis() : renderAtsUi()}

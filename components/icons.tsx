@@ -5,6 +5,43 @@ interface IconProps {
   className?: string;
 }
 
+export const HirelensLogoIcon: React.FC<IconProps> = ({ className }) => {
+    const polarToCartesian = (centerX: number, centerY: number, radius: number, angleInDegrees: number) => {
+        const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+        return {
+            x: centerX + (radius * Math.cos(angleInRadians)),
+            y: centerY + (radius * Math.sin(angleInRadians))
+        };
+    };
+
+    const describeArc = (x: number, y: number, radius: number, startAngle: number, endAngle: number) => {
+        const start = polarToCartesian(x, y, radius, endAngle);
+        const end = polarToCartesian(x, y, radius, startAngle);
+        const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+        const d = [
+            "M", start.x, start.y,
+            "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y
+        ].join(" ");
+        return d;
+    };
+
+    return (
+        <svg viewBox="0 0 100 100" className={className} aria-label="Hirelens logo">
+            <circle cx="50" cy="50" r="34" fill="#E5E7EB" />
+            {/* Orange segment: 60 degrees */}
+            <path d={describeArc(50, 50, 40, 270, 330)} fill="none" stroke="#F97316" strokeWidth="12" />
+            {/* Green segment: 60 degrees */}
+            <path d={describeArc(50, 50, 40, 330, 390)} fill="none" stroke="#22C55E" strokeWidth="12" />
+            {/* Blue segment: 60 degrees */}
+            <path d={describeArc(50, 50, 40, 390, 450)} fill="none" stroke="#3B82F6" strokeWidth="12" />
+            {/* Red segment: 90 degrees */}
+            <path d={describeArc(50, 50, 40, 450, 540)} fill="none" stroke="#EF4444" strokeWidth="12" />
+            {/* Purple segment: 90 degrees */}
+            <path d={describeArc(50, 50, 40, 540, 630)} fill="none" stroke="#8B5CF6" strokeWidth="12" />
+        </svg>
+    );
+};
+
 export const DollarSignIcon: React.FC<IconProps> = ({ className }) => (
   <svg xmlns="http://www.w3.org/2000/svg" className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v.01" />
