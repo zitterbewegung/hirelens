@@ -14,7 +14,7 @@ const jobPostingExamples = [
   {
     name: 'Excellent Example',
     content: `Senior Backend Engineer (Go)
-CloudSphere Inc. - Remote (USA)
+CloudSphere Inc. - Remote (Austin, TX)
 Salary: $180,000 - $200,000 per year
 Posted: 1 day ago
 
@@ -197,6 +197,8 @@ const App: React.FC = () => {
     const salarySpread = analysis.salaryMin && analysis.salaryMax && analysis.salaryMax > 0
       ? ((analysis.salaryMax - analysis.salaryMin) / analysis.salaryMax) * 100
       : null;
+    
+    const locationString = [analysis.jobCity, analysis.jobState, analysis.jobCountry].filter(Boolean).join(', ');
 
     return (
       <div className="space-y-6 animate-fade-in">
@@ -220,7 +222,7 @@ const App: React.FC = () => {
             </InfoCard>
             <InfoCard icon={<LocationMarkerIcon className="w-6 h-6 text-blue-400" />} title="Work Location" score={analysis.scores.location} scoreColorClass={getScoreColorClass(analysis.scores.location)}>
                 <p>Type: <span className="font-semibold capitalize text-slate-300">{analysis.workLocationType}</span></p>
-                {analysis.jobCity && <p>Location: {analysis.jobCity}, {analysis.jobState} {analysis.jobCountry}</p>}
+                {locationString && <p>Location: {locationString}</p>}
             </InfoCard>
             <InfoCard icon={<BuildingIcon className="w-6 h-6 text-indigo-400" />} title="Cost of Living" score={analysis.scores.costOfLiving} scoreColorClass={getScoreColorClass(analysis.scores.costOfLiving)}>
                 {typeof analysis.costOfLivingAnalysis.costOfLivingScore === 'number' && <p>Salary vs CoL Score: <span className="font-semibold text-slate-300">{analysis.costOfLivingAnalysis.costOfLivingScore} / 100</span></p>}
