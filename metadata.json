@@ -1,5 +1,5 @@
 {
   "name": "Hirelens",
-  "description": "Hirelens: An AI-powered tool that analyzes and rates the quality of job postings based on criteria like salary transparency, work location, cost of living, and potential red flags.",
+  "description": "Hirelens: A Chrome extension that uses AI to analyze and rate job postings based on salary transparency, location, and more, and checks your resume's fit.",
   "requestFramePermissions": []
 }

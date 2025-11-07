@@ -1,11 +1,14 @@
 
+// Fix: Add declaration for the chrome extension API to prevent TypeScript errors.
+declare const chrome: any;
+
 import React, { useState, useCallback, ChangeEvent } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { analyzeJobPosting, analyzeResumeAgainstJob } from './services/geminiService';
 import { calculateScores } from './utils/scorer';
 import { ScoredAnalysis, AtsAnalysis } from './types';
 import ScoreGauge from './components/ScoreGauge';
-import { DollarSignIcon, LocationMarkerIcon, BuildingIcon, ClockIcon, QuestionMarkCircleIcon, DocumentTextIcon, HirelensLogoIcon } from './components/icons';
+import { DollarSignIcon, LocationMarkerIcon, BuildingIcon, ClockIcon, QuestionMarkCircleIcon, DocumentTextIcon, HirelensLogoIcon, LightBulbIcon, ClipboardCheckIcon, SparklesIcon } from './components/icons';
 
 // Set worker source for pdf.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.4.168/build/pdf.worker.min.mjs`;
@@ -41,31 +44,64 @@ Posted 2 months ago`
 ];
 
 const App: React.FC = () => {
-  const [jobText, setJobText] = useState<string>(jobPostingExamples[0].content);
+  const [jobText, setJobText] = useState<string>('');
   const [analysis, setAnalysis] = useState<ScoredAnalysis | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'job' | 'ats'>('job');
+  const [activeTab, setActiveTab] = useState<'how-it-works' | 'job' | 'ats'>('how-it-works');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [atsAnalysis, setAtsAnalysis] = useState<AtsAnalysis | null>(null);
   const [isAtsLoading, setIsAtsLoading] = useState<boolean>(false);
   const [atsError, setAtsError] = useState<string | null>(null);
+  const [isGrabbingText, setIsGrabbingText] = useState(false);
+
+  const handleGrabText = useCallback(() => {
+    if (typeof chrome === 'undefined' || !chrome.tabs) {
+        setError("This feature is only available in the Chrome extension.");
+        return;
+    }
+    setIsGrabbingText(true);
+    setError(null);
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0] && tabs[0].id) {
+            chrome.scripting.executeScript({
+                target: { tabId: tabs[0].id },
+                func: getJobDescriptionText,
+            }).then(injectionResults => {
+                const result = injectionResults[0].result;
+                 if (result.success) {
+                    setJobText(result.text);
+                } else {
+                    setError(result.error || "Failed to grab text.");
+                }
+                setIsGrabbingText(false);
+            }).catch(err => {
+                 setError(`Error grabbing text from page: ${err.message}`);
+                 setIsGrabbingText(false);
+            });
+        } else {
+            setError("Could not find active tab to grab text from.");
+            setIsGrabbingText(false);
+        }
+    });
+  }, []);
 
   const handleAnalyzeClick = useCallback(async () => {
     if (!jobText.trim()) {
       setError("Job posting text cannot be empty.");
+      setActiveTab('job');
       return;
     }
     setIsLoading(true);
     setError(null);
     setAnalysis(null);
+    setActiveTab('job');
 
     try {
       const extractedData = await analyzeJobPosting(jobText);
       const scoredData = calculateScores(extractedData);
       setAnalysis(scoredData);
-      setActiveTab('job');
     } catch (err: any) {
       setError(err.message || "An unknown error occurred.");
     } finally {
@@ -80,6 +116,7 @@ const App: React.FC = () => {
     setAtsAnalysis(null);
     setAtsError(null);
     setSelectedFile(null);
+    setActiveTab('how-it-works');
   };
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -171,6 +208,52 @@ const App: React.FC = () => {
     return 'text-green-500';
   }
 
+  const renderHowItWorks = () => {
+    return (
+        <div className="space-y-6 animate-fade-in h-full flex flex-col justify-center">
+            <div className="bg-slate-800/50 rounded-lg p-6 backdrop-blur-sm border border-slate-700">
+                <div className="flex items-center gap-3 mb-4">
+                    <HirelensLogoIcon className="w-8 h-8"/>
+                    <h2 className="text-2xl font-bold">How Hirelens Works</h2>
+                </div>
+                <div className="space-y-6 text-slate-400">
+                    <div className="flex items-start gap-4">
+                        <div className="bg-blue-500/10 text-blue-400 rounded-full p-2 mt-1 flex-shrink-0">
+                            <DocumentTextIcon className="w-6 h-6"/>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-slate-200">1. Grab or Paste a Job Description</h3>
+                            <p>Click "Grab Text from Page" to automatically extract the job description from your current tab, or paste the text directly into the text area.</p>
+                        </div>
+                    </div>
+                     <div className="flex items-start gap-4">
+                        <div className="bg-green-500/10 text-green-400 rounded-full p-2 mt-1 flex-shrink-0">
+                           <LightBulbIcon className="w-6 h-6"/>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-slate-200">2. Get AI-Powered Insights</h3>
+                            <p>Click "Analyze Posting". Our AI reads the posting and scores it on key quality metrics like salary transparency, location benefits, cost of living match, and posting age.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-start gap-4">
+                        <div className="bg-indigo-500/10 text-indigo-400 rounded-full p-2 mt-1 flex-shrink-0">
+                           <ClipboardCheckIcon className="w-6 h-6"/>
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-slate-200">3. Check Your Resume's Fit</h3>
+                            <p>Switch to the "Resume ATS Check" tab. Upload your resume in PDF format to see how well it matches the job description, get a match score, and receive actionable suggestions for improvement.</p>
+                        </div>
+                    </div>
+                </div>
+                 <div className="mt-6 pt-4 border-t border-slate-700 flex items-center justify-center gap-2 text-sm text-slate-500">
+                    <SparklesIcon className="w-5 h-5" />
+                    <span>Analysis powered by Google Gemini</span>
+                </div>
+            </div>
+        </div>
+    );
+  };
+
   const renderAnalysis = () => {
     if (isLoading) {
       return (
@@ -181,7 +264,7 @@ const App: React.FC = () => {
       );
     }
 
-    if (error) {
+    if (error && activeTab === 'job') {
       return <div className="text-red-400 bg-red-900/50 p-4 rounded-lg">{error}</div>;
     }
 
@@ -344,11 +427,18 @@ const App: React.FC = () => {
 
         <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="flex flex-col">
-            <div className="mb-4">
-              <label className="mb-2 font-semibold text-slate-300 block">Load an Example</label>
-              <div className="flex flex-wrap gap-2">{jobPostingExamples.map((example) => <button key={example.name} onClick={() => loadExample(example.content)} className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-md transition-colors">{example.name}</button>)}</div>
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
+              <button onClick={handleGrabText} disabled={isGrabbingText} className="w-full sm:w-auto flex-1 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-indigo-500/50">
+                {isGrabbingText ? <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>Grabbing...</> : 'Grab Text from Page'}
+              </button>
+              <div className="relative sm:w-auto flex-1 group">
+                  <button className="w-full bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2 px-4 rounded-lg transition-colors">Load Example</button>
+                  <div className="absolute z-10 top-full mt-2 w-full sm:w-48 bg-slate-700 rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none group-hover:pointer-events-auto">
+                      {jobPostingExamples.map((example) => <a key={example.name} href="#" onClick={(e) => { e.preventDefault(); loadExample(example.content); }} className="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-600">{example.name}</a>)}
+                  </div>
+              </div>
             </div>
-            <textarea id="job-posting" value={jobText} onChange={(e) => setJobText(e.target.value)} placeholder="Paste job description here..." className="flex-grow w-full p-4 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow min-h-[500px] text-slate-300" aria-label="Job Posting Text Input" />
+            <textarea id="job-posting" value={jobText} onChange={(e) => setJobText(e.target.value)} placeholder="Paste job description here, or click 'Grab Text from Page' while viewing a job posting..." className="flex-grow w-full p-4 bg-slate-800 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none transition-shadow min-h-[470px] text-slate-300" aria-label="Job Posting Text Input" />
             <button onClick={handleAnalyzeClick} disabled={isLoading} className="mt-4 w-full bg-brand-secondary hover:bg-brand-primary disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-blue-500/50">
                 {isLoading ? <><div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>Analyzing...</> : 'Analyze Posting'}
             </button>
@@ -356,16 +446,50 @@ const App: React.FC = () => {
 
           <div className="w-full">
             <div className="border-b border-slate-700 mb-6">
+                <TabButton label="How It Works" isActive={activeTab === 'how-it-works'} onClick={() => setActiveTab('how-it-works')} />
                 <TabButton label="Job Quality Analysis" isActive={activeTab === 'job'} onClick={() => setActiveTab('job')} />
-                {/* Fix: Corrected typo from `active-tab` to `activeTab` */}
                 <TabButton label="Resume ATS Check" isActive={activeTab === 'ats'} onClick={() => setActiveTab('ats')} />
             </div>
-            {activeTab === 'job' ? renderAnalysis() : renderAtsUi()}
+            {activeTab === 'how-it-works' && renderHowItWorks()}
+            {activeTab === 'job' && renderAnalysis()}
+            {activeTab === 'ats' && renderAtsUi()}
           </div>
         </main>
       </div>
     </div>
   );
+};
+
+// This function will be injected into the active tab by the extension's service worker
+// to avoid complex message passing setups for this simple case.
+const getJobDescriptionText = (): { success: boolean; text?: string; error?: string } => {
+  const selectors = [
+    // LinkedIn
+    '.jobs-description__content .jobs-description-content__text',
+    '#job-details',
+    // Indeed
+    '#jobDescriptionText',
+    // Greenhouse
+    '#content',
+    // Lever
+    '.content .section-wrapper .postings-body',
+    // Wellfound (formerly AngelList)
+    '[data-test="job-description"]',
+    // Glassdoor
+    '.jobDescriptionContent',
+    // Generic selectors
+    'article',
+    'main',
+  ];
+
+  for (const selector of selectors) {
+    const element = document.querySelector(selector) as HTMLElement;
+    if (element && element.innerText.length > 200) {
+      return { success: true, text: element.innerText.trim() };
+    }
+  }
+
+  return { success: false, error: "Could not find a suitable job description on this page." };
 };
 
 export default App;
